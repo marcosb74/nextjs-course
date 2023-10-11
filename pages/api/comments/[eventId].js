@@ -1,5 +1,9 @@
-function handler(req, res) {
+import { MongoClient } from "mongodb";
+
+async function handler(req, res) {
   const eventId = req.query.eventId;
+
+  const client = await MongoClient.connect(process.env.URL_MONGO_EVENTS);
 
   if (req.method === "POST") {
     // add server side Validation
@@ -19,21 +23,25 @@ function handler(req, res) {
       email,
       name,
       text,
+      eventId,
     };
-    console.log(newComments);
+
+    const db = client.db();
+    await db.collection("comments").insertOne(newComments);
 
     res.status(201).json({ message: "Data ok!", comment: newComments });
   }
   if (req.method === "GET") {
-    const dummyList = [
-      { id: "c1", name: "max", text: "text@test.com" },
-      { id: "c2", name: "maximiliano", text: "segundo@test.com" },
-      { id: "c3", name: "maxmuis", text: "text22@test.com" },
-      { id: "c4", name: "ranapepe", text: "tercerotest.com" },
-    ];
+    const db = client.db();
+    const documents = await db
+      .collection("comments")
+      .find()
+      .sort({ _id: -1 })
+      .toArray();
 
-    res.status(200).json({ comments: dummyList });
+    res.status(200).json({ comments: documents });
   }
+  client.close();
 }
 
 export default handler;
